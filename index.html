@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f6f7f9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="冉冉作业上传">
+<title>冉冉作业上传</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --text:#1c2430; --sub:#7a8798;
+    --line:#e5e9ef; --brand:#2f6df6; --brand-soft:#e8f0ff;
+    --ok:#1aa05b; --ok-soft:#e6f6ed; --warn:#e08a00; --warn-soft:#fff4e0;
+    --err:#d93025; --err-soft:#fdecea;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:16px; line-height:1.5;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px}
+  .hide{display:none!important}
+
+  /* ---------- gate ---------- */
+  #gate{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 22px}
+  #gate h1{font-size:20px;margin:0 0 6px}
+  #gate p{color:var(--sub);font-size:14px;margin:0 0 22px}
+  #gate .row{display:flex;gap:10px}
+  input,button,select{font:inherit;color:inherit}
+  input[type=password],input[type=text]{
+    flex:1;min-width:0;padding:13px 14px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;font-size:16px;
+  }
+  input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .btn{
+    border:0;border-radius:12px;padding:13px 18px;font-size:16px;font-weight:600;
+    background:var(--brand);color:#fff;cursor:pointer;transition:opacity .15s;
+  }
+  .btn:active{opacity:.75}
+  .btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line);font-weight:500}
+  .btn.tiny{padding:7px 12px;font-size:13px;border-radius:9px;font-weight:500}
+  .btn[disabled]{opacity:.45}
+  .gaterr{color:var(--err);font-size:14px;margin-top:12px}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:20;background:rgba(246,247,249,.92);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .hd{display:flex;align-items:center;gap:10px;padding:12px 14px}
+  .hd h1{font-size:17px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hd .date{color:var(--sub);font-size:13px;font-weight:400}
+  .iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;display:grid;place-items:center;font-size:16px;cursor:pointer;flex:none}
+
+  /* ---------- pick cards ---------- */
+  .picks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+  .pick{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    padding:20px 10px;border-radius:var(--radius);background:var(--card);
+    border:1px dashed #c9d4e5;cursor:pointer;
+  }
+  .pick:active{background:var(--brand-soft)}
+  .pick .big{font-size:26px;line-height:1}
+  .pick .t{font-size:15px;font-weight:600}
+  .pick .s{font-size:12px;color:var(--sub)}
+  .pick input{display:none}
+
+  /* ---------- summary ---------- */
+  .bar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin:4px 0 10px}
+  .bar .grow{flex:1}
+  .pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .pill.ok{background:var(--ok-soft);color:var(--ok)}
+  .pill.busy{background:var(--brand-soft);color:var(--brand)}
+  .pill.err{background:var(--err-soft);color:var(--err)}
+
+  /* ---------- queue ---------- */
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{
+    display:flex;gap:10px;align-items:center;background:var(--card);
+    border-radius:12px;padding:8px;border:1px solid var(--line);
+  }
+  .item img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:#eef1f5;flex:none}
+  .item .meta{flex:1;min-width:0}
+  .item .nm{font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .st{font-size:13px;font-weight:600;margin-top:2px}
+  .item .st.ok{color:var(--ok)}
+  .item .st.err{color:var(--err)}
+  .item .st.busy{color:var(--brand)}
+  .item .sp{width:30px;text-align:center;font-size:13px;color:var(--sub);flex:none}
+  .prog{height:4px;border-radius:99px;background:#eef1f5;margin-top:6px;overflow:hidden}
+  .prog i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s}
+  .empty{text-align:center;color:var(--sub);font-size:14px;padding:26px 0}
+
+  .sec{margin:20px 0 8px;font-size:14px;font-weight:600;color:var(--sub);display:flex;align-items:center;gap:8px}
+  .sec .ln{flex:1;height:1px;background:var(--line)}
+  .done-item{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--sub);padding:7px 2px}
+  .done-item .n{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .done-item .lnk{color:var(--brand);text-decoration:none;flex:none}
+
+  /* ---------- sheet ---------- */
+  #mask{position:fixed;inset:0;background:rgba(16,24,38,.42);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+  #mask.on{opacity:1;pointer-events:auto}
+  #sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;background:#fff;
+    border-radius:18px 18px 0 0;transform:translateY(102%);transition:transform .26s ease;
+    padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;
+  }
+  #sheet.on{transform:none}
+  .grab{width:38px;height:4px;border-radius:99px;background:#dbe1ea;margin:6px auto 12px}
+  .fld{margin-bottom:14px}
+  .fld label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin-bottom:6px}
+  .fld input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:11px}
+  .hint{font-size:12px;color:var(--sub);line-height:1.6;margin-top:6px}
+  .hint b{color:var(--text);font-weight:600}
+  .hint code{background:#f1f4f8;border-radius:5px;padding:1px 5px;font-size:11px}
+  .sheet-actions{display:flex;gap:10px;margin-top:4px}
+  .sheet-actions .btn{flex:1}
+  .conn{font-size:13px;margin-top:10px;line-height:1.5;word-break:break-all}
+  .conn.ok{color:var(--ok)} .conn.err{color:var(--err)} .conn.busy{color:var(--brand)}
+  .sep{height:1px;background:var(--line);margin:16px 0}
+
+  #toast{position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
+    background:rgba(28,36,48,.92);color:#fff;font-size:14px;padding:10px 16px;border-radius:10px;
+    opacity:0;pointer-events:none;transition:.22s;z-index:60;max-width:86vw;text-align:center}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:340px){
+    .pick .t{font-size:14px} .pick .s{display:none} .hd h1{font-size:15.5px}
+    .item img{width:48px;height:48px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= gate ================= -->
+<div id="gate" class="hide">
+  <h1>冉冉作业上传</h1>
+  <p>输入口令后即可上传作业照片。</p>
+  <div class="row">
+    <input id="gatePwd" type="password" inputmode="text" placeholder="口令" autocomplete="off">
+    <button class="btn" id="gateGo">进入</button>
+  </div>
+  <div class="gaterr hide" id="gateErr">口令不对</div>
+</div>
+
+<!-- ================= main ================= -->
+<div id="app" class="hide">
+  <header>
+    <div class="wrap hd">
+      <h1>冉冉作业上传 <span class="date" id="today"></span></h1>
+      <button class="iconbtn" id="openSet" aria-label="设置">⚙</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="picks">
+      <label class="pick">
+        <span class="big">📷</span>
+        <span class="t">拍照</span>
+        <span class="s">拍完直接传</span>
+        <input type="file" id="fCam" accept="image/*" capture="environment">
+      </label>
+      <label class="pick">
+        <span class="big">🖼</span>
+        <span class="t">相册选图</span>
+        <span class="s">可多选</span>
+        <input type="file" id="fAlbum" accept="image/*" multiple>
+      </label>
+    </div>
+
+    <div class="bar">
+      <span id="summary">今天还没有上传</span>
+      <span class="grow"></span>
+      <span class="pill hide" id="busyPill"></span>
+    </div>
+
+    <div class="list" id="queue"></div>
+    <div class="empty hide" id="queueEmpty">选好照片就会出现在这里</div>
+
+    <div class="sec"><span>今天已传到云端</span><span class="ln"></span><button class="btn tiny ghost" id="refreshDone">刷新</button></div>
+    <div id="doneList"><div class="empty">今天还没有</div></div>
+  </div>
+</div>
+
+<!-- ================= settings sheet ================= -->
+<div id="mask"></div>
+<div id="sheet">
+  <div class="grab"></div>
+  <div style="font-size:17px;font-weight:700;margin-bottom:14px">设置</div>
+
+  <div class="fld">
+    <label for="tok">GitHub Token</label>
+    <input id="tok" type="password" placeholder="只在手机上保存，不会外传" autocomplete="off">
+    <div class="hint">在 GitHub 建一个 Fine-grained token：<br>
+      Repository access 只勾 <b>ranran-hw</b><br>
+      Permissions → <b>Contents: Read and write</b>
+    </div>
+  </div>
+  <div class="fld">
+    <label for="owner">账号</label>
+    <input id="owner" type="text" placeholder="RANRAN20181215">
+  </div>
+  <div class="fld">
+    <label for="repo">上传到仓库</label>
+    <input id="repo" type="text" placeholder="ranran-hw">
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn ghost" id="saveSet">保存</button>
+    <button class="btn" id="testSet">检查连接</button>
+  </div>
+  <div class="conn hide" id="connMsg"></div>
+
+  <div class="sep"></div>
+  <div class="hint">
+    照片会压缩到长边 1800px 再上传，电脑端定时自动拉取到
+    <code>F:\冉冉每日作业照片\日期\</code>，云端不留存。
+  </div>
+  <div class="sheet-actions" style="margin-top:14px">
+    <button class="btn ghost" id="closeSet">关闭</button>
+    <button class="btn ghost" id="logout" style="color:var(--err)">退出口令</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var GATE = 'ranran2026';
+  var DEFAULT_OWNER = 'RANRAN20181215';
+  var DEFAULT_REPO  = 'ranran-hw';
+  var MAX_EDGE = 1800;
+  var MAX_BYTES = 800 * 1024;
+
+  var LS = {
+    gate: 'hw.gate',
+    tok:  'hw.tok',
+    own:  'hw.owner',
+    rep:  'hw.repo'
+  };
+
+  var $ = function(s){ return document.querySelector(s); };
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function todayKey(){
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  function hhmmss(){
+    var d = new Date();
+    return pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+  function toast(msg, ms){
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(t._t);
+    t._t = setTimeout(function(){ t.classList.remove('on'); }, ms || 2000);
+  }
+
+  var cfg = {
+    get tok(){ return localStorage.getItem(LS.tok) || ''; },
+    set tok(v){ v ? localStorage.setItem(LS.tok, v) : localStorage.removeItem(LS.tok); },
+    get owner(){ return localStorage.getItem(LS.own) || DEFAULT_OWNER; },
+    set owner(v){ localStorage.setItem(LS.own, v || DEFAULT_OWNER); },
+    get repo(){ return localStorage.getItem(LS.rep) || DEFAULT_REPO; },
+    set repo(v){ localStorage.setItem(LS.rep, v || DEFAULT_REPO); }
+  };
+
+  /* ---------------- IndexedDB queue ---------------- */
+  var IDB = {
+    db: null,
+    open: function(){
+      var self = this;
+      return new Promise(function(res, rej){
+        if (self.db) return res(self.db);
+        var r = indexedDB.open('hw-queue', 1);
+        r.onupgradeneeded = function(){
+          var db = r.result;
+          if (!db.objectStoreNames.contains('items')){
+            db.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        r.onsuccess = function(){ self.db = r.result; res(self.db); };
+        r.onerror = function(){ rej(r.error); };
+      });
+    },
+    all: function(){
+      var self = this;
+      return self.open().then(function(db){
+        return new Promise(function(res, rej){
+          var q = db.transaction('items', 'readonly').objectStore('items').getAll();
+          q.onsuccess = function(){ res(q.result || []); };
+          q.onerror = function(){ rej(q.error); };
+        });
+      });
+    },
+    add: function(it){
+      var self = this;
+      return self.open().then(function(db){
+        return new Promise(function(res, rej){
+          var q = db.transaction('items', 'readwrite').objectStore('items').add(it);
+          q.onsuccess = function(){ res(q.result); };
+          q.onerror = function(){ rej(q.error); };
+        });
+      });
+    },
+    put: function(it){
+      var self = this;
+      return self.open().then(function(db){
+        return new Promise(function(res, rej){
+          var q = db.transaction('items', 'readwrite').objectStore('items').put(it);
+          q.onsuccess = function(){ res(q.result); };
+          q.onerror = function(){ rej(q.error); };
+        });
+      });
+    },
+    del: function(id){
+      var self = this;
+      return self.open().then(function(db){
+        return new Promise(function(res, rej){
+          var q = db.transaction('items', 'readwrite').objectStore('items').delete(id);
+          q.onsuccess = function(){ res(); };
+          q.onerror = function(){ rej(q.error); };
+        });
+      });
+    }
+  };
+
+  /* ---------------- queue state ---------------- */
+  var items = [];          // {id, blob, name, day, status, pct, err, url}
+  var running = 0;
+  // GitHub Contents API 对同一仓库并发提交会互相顶掉（409），所以串行上传
+  var MAX_PARALLEL = 1;
+
+  function renderQueue(){
+    var box = $('#queue');
+    var pend = 0, okc = 0, errc = 0, busy = 0;
+    box.innerHTML = '';
+    items.forEach(function(it){
+      if (it.status === 'prep') busy++;
+      else if (it.status === 'wait') pend++;
+      else if (it.status === 'ok') okc++;
+      else if (it.status === 'err') errc++;
+      else busy++;
+
+      var el = document.createElement('div');
+      el.className = 'item';
+      var img = document.createElement('img');
+      if (it.url) img.src = it.url;
+      img.alt = '';
+      el.appendChild(img);
+
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var nm = document.createElement('div');
+      nm.className = 'nm';
+      nm.textContent = it.name;
+      meta.appendChild(nm);
+
+      var st = document.createElement('div');
+      var label = '', cls = 'busy';
+      if (it.status === 'prep'){ label = '准备中…'; cls = 'busy'; }
+      else if (it.status === 'wait'){ label = '等待上传'; cls = ''; }
+      else if (it.status === 'up'){ label = '上传中 ' + Math.round(it.pct || 0) + '%'; cls = 'busy'; }
+      else if (it.status === 'ok'){ label = '已上传'; cls = 'ok'; }
+      else { label = it.err || '失败'; cls = 'err'; }
+      st.className = 'st ' + cls;
+      st.textContent = label;
+      meta.appendChild(st);
+
+      if (it.status === 'up'){
+        var p = document.createElement('div');
+        p.className = 'prog';
+        var i = document.createElement('i');
+        i.style.width = (it.pct || 0) + '%';
+        p.appendChild(i);
+        meta.appendChild(p);
+      }
+      el.appendChild(meta);
+
+      if (it.status === 'err'){
+        var b = document.createElement('button');
+        b.className = 'btn tiny ghost';
+        b.textContent = '重试';
+        b.onclick = function(){ retry(it); };
+        el.appendChild(b);
+      } else if (it.status === 'ok'){
+        var sp = document.createElement('div');
+        sp.className = 'sp';
+        sp.textContent = '✓';
+        el.appendChild(sp);
+      }
+      box.appendChild(el);
+    });
+
+    $('#queueEmpty').classList.toggle('hide', items.length > 0);
+
+    var s = $('#summary');
+    var parts = [];
+    if (okc) parts.push('已传 ' + okc + ' 张');
+    if (busy || pend) parts.push('待传 ' + (busy + pend) + ' 张');
+    if (errc) parts.push('失败 ' + errc + ' 张');
+    s.textContent = parts.length ? parts.join(' · ') : '今天还没有上传';
+
+    var pill = $('#busyPill');
+    if (busy || pend){ pill.className = 'pill busy'; pill.textContent = '传输中'; }
+    else if (errc){ pill.className = 'pill err'; pill.textContent = '有失败'; }
+    else if (okc){ pill.className = 'pill ok'; pill.textContent = '全部完成'; }
+    else pill.className = 'pill hide';
+  }
+
+  /* ---------------- compress ---------------- */
+  function compress(file){
+    return createImageBitmap(file, { imageOrientation: 'from-image' }).then(function(bmp){
+      var w = bmp.width, h = bmp.height;
+      var scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+      w = Math.max(1, Math.round(w * scale));
+      h = Math.max(1, Math.round(h * scale));
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+      if (bmp.close) bmp.close();
+      var q = 0.82;
+      function enc(){ return new Promise(function(res){ c.toBlob(res, 'image/jpeg', q); }); }
+      return enc().then(function(b){
+        if (b && b.size > MAX_BYTES && q > 0.55){
+          q = 0.68;
+          return enc().then(function(b2){
+            if (b2 && b2.size > MAX_BYTES && q > 0.55){
+              q = 0.55;
+              return enc();
+            }
+            return b2;
+          });
+        }
+        return b;
+      });
+    });
+  }
+
+  /* ---------------- GitHub api ---------------- */
+  function ghError(status, body){
+    var m = (body && (body.message || '')) || '';
+    if (status === 401) return 'Token 无效或已过期，去设置里重填';
+    if (status === 403) return '没有权限：确认 token 勾了 ranran-hw 的 Contents 读写';
+    if (status === 404) return '看不到仓库 ranran-hw：确认 token 有权限、账号没填错';
+    if (status === 409) return '跟云端提交冲突，正在重试';
+    if (status === 422) return '参数校验失败：' + m;
+    if (status >= 500) return 'GitHub 服务器出错，稍后重试';
+    return (status ? status + ' ' : '') + (m || '上传失败');
+  }
+
+  function apiGet(path){
+    return fetch('https://api.github.com' + path, {
+      headers: {
+        'Authorization': 'Bearer ' + cfg.tok,
+        'Accept': 'application/vnd.github+json'
+      },
+      cache: 'no-store'
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){
+        return { status: r.status, ok: r.ok, json: j };
+      });
+    });
+  }
+
+  function apiPut(path, blob, onPct){
+    return new Promise(function(resolve, reject){
+      var fr = new FileReader();
+      fr.onerror = function(){ reject('读取文件失败'); };
+      fr.onload = function(){
+        var b64 = String(fr.result).split(',')[1] || '';
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', 'https://api.github.com/repos/' + cfg.owner + '/' + cfg.repo +
+                 '/contents/' + path);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + cfg.tok);
+        xhr.setRequestHeader('Accept', 'application/vnd.github+json');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        if (xhr.upload && onPct){
+          xhr.upload.onprogress = function(e){
+            if (e.lengthComputable) onPct(e.loaded / e.total * 100);
+          };
+        }
+        xhr.onload = function(){
+          var j = {};
+          try { j = JSON.parse(xhr.responseText || '{}'); } catch(e){}
+          if (xhr.status === 200 || xhr.status === 201) resolve(j);
+          else reject(ghError(xhr.status, j));
+        };
+        xhr.onerror = function(){ reject('网络不通，检查手机网络后重试'); };
+        xhr.ontimeout = function(){ reject('上传超时，重试'); };
+        xhr.timeout = 120000;
+        xhr.send(JSON.stringify({ message: 'upload ' + path, content: b64 }));
+      };
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  /* ---------------- upload flow ---------------- */
+  function paintProgress(item, p){
+    var nodes = $('#queue').children;
+    for (var i = 0; i < items.length; i++){
+      if (items[i] === item && nodes[i]){
+        var bar = nodes[i].querySelector('.prog i');
+        if (bar) bar.style.width = p + '%';
+        var st = nodes[i].querySelector('.st');
+        if (st) st.textContent = '上传中 ' + Math.round(p) + '%';
+      }
+    }
+  }
+
+  function putWithRetry(item){
+    var tries = 0;
+    function go(){
+      return apiPut('inbox/' + item.day + '/' + item.name, item.blob, function(p){
+        item.pct = p;
+        paintProgress(item, p);
+      }).catch(function(err){
+        var msg = String(err && err.message ? err.message : err);
+        if (tries < 2 && msg.indexOf('冲突') >= 0){
+          tries++;
+          item.pct = 0;
+          paintProgress(item, 0);
+          return new Promise(function(r){ setTimeout(r, 1200 * tries); }).then(go);
+        }
+        throw err;
+      });
+    }
+    return go();
+  }
+
+  function upload(item){
+    item.status = 'up';
+    item.pct = 0;
+    item.err = '';
+    renderQueue();
+    return putWithRetry(item).then(function(){
+      item.status = 'ok';
+      item.pct = 100;
+      if (item.id){ IDB.del(item.id); item.id = null; }
+      renderQueue();
+      refreshDone();
+      setTimeout(function(){
+        var i = items.indexOf(item);
+        if (i >= 0){ items.splice(i, 1); renderQueue(); }
+      }, 900);
+    }, function(err){
+      item.status = 'err';
+      item.err = String(err && err.message ? err.message : err);
+      if (item.id) IDB.put({ id: item.id, blob: item.blob, name: item.name, day: item.day, status: 'wait' });
+      renderQueue();
+    });
+  }
+
+  function drain(){
+    if (!cfg.tok) return;
+    for (var i = 0; i < items.length; i++){
+      if (running >= MAX_PARALLEL) break;
+      var it = items[i];
+      if (it.status === 'wait' && it.blob){
+        running++;
+        Promise.resolve(upload(it)).then(function(){ running--; drain(); },
+          function(){ running--; drain(); });
+      }
+    }
+  }
+
+  function retry(item){
+    item.status = 'wait';
+    item.err = '';
+    renderQueue();
+    drain();
+  }
+
+  function addFiles(fileList){
+    var files = Array.prototype.slice.call(fileList || []).filter(function(f){
+      return /^image\//.test(f.type);
+    });
+    if (!files.length) return;
+    if (!cfg.tok){
+      toast('先点右上角 ⚙ 填 GitHub Token');
+      openSheet();
+      return;
+    }
+    files.forEach(function(f){
+      var day = todayKey();
+      var nm = hhmmss() + '-' + Math.random().toString(36).slice(2, 5) + '.jpg';
+      var ph = {
+        id: null, blob: null, name: nm, day: day,
+        status: 'prep', pct: 0, err: '',
+        url: URL.createObjectURL(f)
+      };
+      items.push(ph);
+      renderQueue();
+      compress(f).then(function(blob){
+        if (!blob) throw new Error('无法解码这张图片');
+        ph.blob = blob;
+        ph.status = 'wait';
+        return IDB.add({ blob: blob, name: nm, day: day, status: 'wait' });
+      }).then(function(id){
+        ph.id = id;
+        renderQueue();
+        drain();
+      }, function(e){
+        ph.status = 'err';
+        ph.err = '压缩失败：' + (e && e.message ? e.message : e);
+        renderQueue();
+      });
+    });
+  }
+
+  /* ---------------- done list ---------------- */
+  function humanSize(n){
+    if (!n) return '';
+    if (n > 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + 'MB';
+    return Math.round(n / 1024) + 'KB';
+  }
+
+  function refreshDone(){
+    if (!cfg.tok) return;
+    var day = todayKey();
+    apiGet('/repos/' + cfg.owner + '/' + cfg.repo + '/contents/inbox/' + day).then(function(r){
+      var box = $('#doneList');
+      box.innerHTML = '';
+      if (r.status === 404 || !Array.isArray(r.json)){
+        box.innerHTML = '<div class="empty">今天还没有</div>';
+        return;
+      }
+      var files = r.json.slice().sort(function(a, b){ return a.name < b.name ? 1 : -1; });
+      if (!files.length){
+        box.innerHTML = '<div class="empty">今天还没有</div>';
+        return;
+      }
+      files.forEach(function(f){
+        var d = document.createElement('div');
+        d.className = 'done-item';
+        var n = document.createElement('span');
+        n.className = 'n';
+        n.textContent = f.name + '  ' + humanSize(f.size);
+        d.appendChild(n);
+        var a = document.createElement('a');
+        a.className = 'lnk';
+        a.textContent = '查看';
+        a.href = f.download_url || '#';
+        a.target = '_blank';
+        a.rel = 'noopener';
+        d.appendChild(a);
+        box.appendChild(d);
+      });
+    }, function(){
+      $('#doneList').innerHTML = '<div class="empty">读取失败</div>';
+    });
+  }
+
+  /* ---------------- settings sheet ---------------- */
+  function openSheet(){
+    $('#tok').value = cfg.tok;
+    $('#owner').value = cfg.owner;
+    $('#repo').value = cfg.repo;
+    $('#connMsg').classList.add('hide');
+    $('#mask').classList.add('on');
+    $('#sheet').classList.add('on');
+  }
+  function closeSheet(){
+    $('#mask').classList.remove('on');
+    $('#sheet').classList.remove('on');
+  }
+  function applyForm(){
+    var t = $('#tok').value.trim();
+    if (t) cfg.tok = t;
+    cfg.owner = $('#owner').value.trim() || DEFAULT_OWNER;
+    cfg.repo = $('#repo').value.trim() || DEFAULT_REPO;
+  }
+  function connMsg(cls, txt){
+    var el = $('#connMsg');
+    el.className = 'conn ' + cls;
+    el.classList.remove('hide');
+    el.textContent = txt;
+  }
+  function checkConn(){
+    applyForm();
+    if (!cfg.tok){ connMsg('err', '先填 Token'); return; }
+    connMsg('busy', '检查中…');
+    apiGet('/user').then(function(r){
+      if (r.status !== 200){
+        connMsg('err', ghError(r.status, r.json));
+        return;
+      }
+      var login = r.json.login;
+      if (login.toLowerCase() !== cfg.owner.toLowerCase()){
+        connMsg('err', '这个 token 属于账号 ' + login + '，跟「账号」栏不一致');
+        return;
+      }
+      return apiGet('/repos/' + cfg.owner + '/' + cfg.repo).then(function(r2){
+        if (r2.status === 200){
+          connMsg('ok', '连接正常 · 账号 ' + login + ' · 仓库 ' + cfg.owner + '/' + cfg.repo);
+        } else if (r2.status === 404){
+          connMsg('err', '账号 ok，但看不到仓库 ' + cfg.repo + '：token 的 Repository access 要勾上它');
+        } else {
+          connMsg('err', ghError(r2.status, r2.json));
+        }
+      });
+    }, function(){
+      connMsg('err', '网络不通');
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+  function showGate(){
+    $('#gate').classList.remove('hide');
+    $('#app').classList.add('hide');
+    setTimeout(function(){ $('#gatePwd').focus(); }, 120);
+  }
+  function showApp(){
+    $('#gate').classList.add('hide');
+    $('#app').classList.remove('hide');
+    $('#today').textContent = todayKey();
+    renderQueue();
+    resume();
+    refreshDone();
+    if (!cfg.tok) setTimeout(function(){ toast('先点右上角 ⚙ 填 GitHub Token', 2600); openSheet(); }, 500);
+  }
+
+  function resume(){
+    IDB.all().then(function(rows){
+      if (!rows.length) return;
+      rows.forEach(function(r){
+        items.push({
+          id: r.id, blob: r.blob, name: r.name, day: r.day,
+          status: 'wait', pct: 0, err: '',
+          url: URL.createObjectURL(r.blob)
+        });
+      });
+      renderQueue();
+      drain();
+    });
+  }
+
+  $('#gateGo').onclick = function(){
+    if ($('#gatePwd').value.trim() === GATE){
+      localStorage.setItem(LS.gate, '1');
+      showApp();
+    } else {
+      $('#gateErr').classList.remove('hide');
+      $('#gatePwd').value = '';
+    }
+  };
+  $('#gatePwd').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') $('#gateGo').click();
+  });
+
+  $('#fCam').onchange = function(e){ addFiles(e.target.files); e.target.value = ''; };
+  $('#fAlbum').onchange = function(e){ addFiles(e.target.files); e.target.value = ''; };
+  $('#refreshDone').onclick = refreshDone;
+  $('#openSet').onclick = openSheet;
+  $('#closeSet').onclick = closeSheet;
+  $('#mask').onclick = closeSheet;
+  $('#saveSet').onclick = function(){
+    applyForm();
+    toast('已保存');
+    closeSheet();
+    drain();
+    refreshDone();
+  };
+  $('#testSet').onclick = checkConn;
+  $('#logout').onclick = function(){
+    localStorage.removeItem(LS.gate);
+    closeSheet();
+    showGate();
+  };
+
+  window.addEventListener('beforeunload', function(e){
+    var pending = items.some(function(i){ return i.status === 'up' || i.status === 'wait' || i.status === 'prep'; });
+    if (pending){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  if (localStorage.getItem(LS.gate) === '1') showApp();
+  else showGate();
+})();
+</script>
+</body>
+</html>
